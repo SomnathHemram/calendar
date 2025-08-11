@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Black Box Calendar</title>
+<title>Black Box Calendar with Swipe Navigation</title>
 <style>
   :root{
     --box-bg:#0b0b0b;
@@ -29,12 +29,14 @@
     width: 340px;
     padding: 18px;
     border: 1px solid rgba(255,255,255,0.03);
+    touch-action: pan-y; /* allow vertical pan for swipe */
+    user-select: none; /* avoid text selection while swiping */
   }
 
   .header {
     display:flex;
     align-items:center;
-    justify-content:space-between;
+    justify-content:center; /* center month label */
     gap:12px;
     margin-bottom:12px;
   }
@@ -43,21 +45,7 @@
     font-weight:600;
     letter-spacing:0.2px;
   }
-  .controls{
-    display:flex;
-    gap:8px;
-  }
-  .btn {
-    background:transparent;
-    border:1px solid rgba(255,255,255,0.04);
-    color:inherit;
-    padding:6px 8px;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:13px;
-    backdrop-filter: blur(4px);
-  }
-  .btn:hover{transform:translateY(-1px);}
+  /* controls removed */
 
   .weekday-row {
     display:grid;
@@ -125,11 +113,6 @@
   <div class="blackbox" role="application" aria-label="Calendar in a black box">
     <div class="header">
       <div class="month" id="monthLabel">Month Year</div>
-      <div class="controls">
-        <button class="btn" id="prevBtn" title="Previous month">&larr;</button>
-        <button class="btn" id="todayBtn" title="Go to today">Today</button>
-        <button class="btn" id="nextBtn" title="Next month">&rarr;</button>
-      </div>
     </div>
 
     <div class="weekday-row" aria-hidden="true">
@@ -143,9 +126,7 @@
 (function(){
   const monthLabel = document.getElementById('monthLabel');
   const daysGrid = document.getElementById('daysGrid');
-  const prevBtn = document.getElementById('prevBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  const todayBtn = document.getElementById('todayBtn');
+  const blackbox = document.querySelector('.blackbox');
 
   // start with current date
   let view = new Date();
@@ -217,7 +198,6 @@
 
       // click handler example
       cell.addEventListener('click', ()=> {
-        // Simple accessible alert — replace with modal or details if wanted
         const label = cellDate.toDateString();
         const isEvent = !!events[key];
         alert(label + (isEvent ? ' — You have an event' : ' — No events'));
@@ -227,21 +207,33 @@
     }
   }
 
-  prevBtn.addEventListener('click', ()=> {
-    view = new Date(view.getFullYear(), view.getMonth()-1, 1);
-    render();
-  });
-  nextBtn.addEventListener('click', ()=> {
-    view = new Date(view.getFullYear(), view.getMonth()+1, 1);
-    render();
-  });
-  todayBtn.addEventListener('click', ()=> {
-    view = new Date();
-    view.setHours(0,0,0,0);
-    render();
+  // Swipe gesture detection
+  let startY = 0;
+  let endY = 0;
+  const threshold = 30; // minimum px to consider a swipe
+
+  blackbox.addEventListener('touchstart', e => {
+    startY = e.touches[0].clientY;
   });
 
-  // initial render
+  blackbox.addEventListener('touchend', e => {
+    endY = e.changedTouches[0].clientY;
+    const diff = endY - startY;
+
+    if (Math.abs(diff) > threshold) {
+      if (diff < 0) {
+        // Swipe up → Next month
+        view = new Date(view.getFullYear(), view.getMonth() + 1, 1);
+        render();
+      } else {
+        // Swipe down → Previous month
+        view = new Date(view.getFullYear(), view.getMonth() - 1, 1);
+        render();
+      }
+    }
+  });
+
+  // Initial render
   render();
 })();
 </script>
