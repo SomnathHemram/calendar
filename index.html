@@ -1,27 +1,37 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Black Box Calendar with Horizontal Swipe Navigation</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Black Box Calendar with Hindu Festivals & Swipe</title>
 <style>
-  :root{
-    --box-bg:#0b0b0b;
-    --accent:#1e90ff;
-    --muted:#888;
-    --card-radius:14px;
-  }
-  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;}
-  body{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:linear-gradient(180deg,#0f1724,#071021);
-    padding:24px;
-    color:#e6eef8;
+  :root {
+    --box-bg: #0b0b0b;
+    --accent: #1e90ff;
+    --muted: #888;
+    --card-radius: 14px;
+
+    /* Event colors */
+    --color-durga: #e91e63;
+    --color-diwali: #ff9800;
+    --color-holi: #9c27b0;
+    --color-festival: #4caf50;
+    --color-raksha: #2196f3;
+    --color-others: #00bcd4;
   }
 
-  /* Black box container */
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(180deg, #0f1724, #071021);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #e6eef8;
+    padding: 24px;
+  }
+
   .blackbox {
     background: var(--box-bg);
     border-radius: var(--card-radius);
@@ -29,82 +39,148 @@
     width: 340px;
     padding: 18px;
     border: 1px solid rgba(255,255,255,0.03);
-    touch-action: pan-y; /* allow vertical pan (to avoid conflicts) */
-    user-select: none; /* avoid text selection while swiping */
+    user-select: none;
+    overflow: hidden;
   }
 
   .header {
-    display:flex;
-    align-items:center;
-    justify-content:center; /* center month label */
-    gap:12px;
-    margin-bottom:12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
   }
+
   .month {
-    font-size:18px;
-    font-weight:600;
-    letter-spacing:0.2px;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  /* Hide buttons for gesture-only UI */
+  .controls {
+    display: none;
   }
 
   .weekday-row {
-    display:grid;
-    grid-template-columns:repeat(7,1fr);
-    gap:6px;
-    margin-bottom:8px;
-    color:var(--muted);
-    font-size:12px;
-    text-align:center;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 8px;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
   }
 
   .days-grid {
-    display:grid;
-    grid-template-columns:repeat(7,1fr);
-    gap:8px;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    position: relative;
+    height: 294px; /* 6 rows * 42px + gaps */
+    overflow: hidden;
+  }
+
+  .days-grid > div {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    position: absolute;
+    top: 0; left: 0; width: 100%;
+    background: var(--box-bg);
+    border-radius: var(--card-radius);
+    padding: 0 0 8px 0;
   }
 
   .day {
-    min-height:42px;
-    display:flex;
-    align-items:flex-start;
-    justify-content:center;
-    padding:6px 4px;
-    border-radius:10px;
-    font-size:13px;
-    color:#dbeafe;
-    position:relative;
+    height: 42px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 6px 4px;
+    border-radius: 10px;
+    font-size: 13px;
+    color: #dbeafe;
+    position: relative;
+    cursor: pointer;
   }
 
-  .day.inactive { color: rgba(255,255,255,0.22); }
+  .day.inactive {
+    color: rgba(255, 255, 255, 0.22);
+  }
 
   .day .num {
-    width:28px;
-    height:28px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border-radius:8px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
   }
 
-  .day.today .num{
-    background: linear-gradient(180deg,var(--accent),#0a62b8);
-    color:white;
-    box-shadow: 0 6px 18px rgba(30,144,255,0.12);
-    font-weight:600;
+  .day.today .num {
+    background: linear-gradient(180deg, var(--accent), #0a62b8);
+    color: white;
+    box-shadow: 0 6px 18px rgba(30, 144, 255, 0.12);
+    font-weight: 600;
   }
 
-  .day.event::after{
-    content: '';
-    position:absolute;
-    bottom:6px;
-    width:6px;
-    height:6px;
-    border-radius:50%;
-    background:var(--accent);
+  /* Event dots */
+  .day.event-durga::after,
+  .day.event-diwali::after,
+  .day.event-holi::after,
+  .day.event-festival::after,
+  .day.event-raksha::after,
+  .day.event-others::after {
+    content: "";
+    position: absolute;
+    bottom: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .day.event-durga::after { background: var(--color-durga); }
+  .day.event-diwali::after { background: var(--color-diwali); }
+  .day.event-holi::after { background: var(--color-holi); }
+  .day.event-festival::after { background: var(--color-festival); }
+  .day.event-raksha::after { background: var(--color-raksha); }
+  .day.event-others::after { background: var(--color-others); }
+
+  /* Animation for sliding */
+  .slide-in-left {
+    transform: translateX(-100%);
+    animation: slideInLeft 0.4s forwards ease;
+  }
+  .slide-in-right {
+    transform: translateX(100%);
+    animation: slideInRight 0.4s forwards ease;
+  }
+  .slide-out-left {
+    animation: slideOutLeft 0.4s forwards ease;
+  }
+  .slide-out-right {
+    animation: slideOutRight 0.4s forwards ease;
   }
 
-  /* Small responsive tweak */
-  @media (max-width:380px){
-    .blackbox{width:100%; padding:14px;}
+  @keyframes slideInLeft {
+    to { transform: translateX(0); }
+  }
+  @keyframes slideInRight {
+    to { transform: translateX(0); }
+  }
+  @keyframes slideOutLeft {
+    to { transform: translateX(-100%); }
+  }
+  @keyframes slideOutRight {
+    to { transform: translateX(100%); }
+  }
+
+  @media (max-width: 380px) {
+    .blackbox {
+      width: 100%;
+      padding: 14px;
+    }
   }
 </style>
 </head>
@@ -112,128 +188,232 @@
   <div class="blackbox" role="application" aria-label="Calendar in a black box">
     <div class="header">
       <div class="month" id="monthLabel">Month Year</div>
+      <div class="controls">
+        <button class="btn" id="prevBtn" title="Previous month">&larr;</button>
+        <button class="btn" id="todayBtn" title="Go to today">Today</button>
+        <button class="btn" id="nextBtn" title="Next month">&rarr;</button>
+      </div>
     </div>
-
     <div class="weekday-row" aria-hidden="true">
       <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
     </div>
-
     <div class="days-grid" id="daysGrid" aria-live="polite"></div>
   </div>
 
 <script>
 (function(){
-  const monthLabel = document.getElementById('monthLabel');
-  const daysGrid = document.getElementById('daysGrid');
-  const blackbox = document.querySelector('.blackbox');
+  const monthLabel = document.getElementById("monthLabel");
+  const daysGrid = document.getElementById("daysGrid");
 
-  // start with current date
-  let view = new Date();
-  view.setHours(0,0,0,0);
+  let viewDate = new Date();
+  viewDate.setHours(0,0,0,0);
 
-  // Example small events map (dateKey -> true). You can replace with dynamic events.
-  const events = {};
-  // Put a demo event on the 10th of current month:
-  const demoKey = new Date(view.getFullYear(), view.getMonth(), 10).toDateString();
-  events[demoKey] = true;
+  // Events data (month 1-based for clarity)
+const events = [
+  { name: "Makar Sankranti", colorClass: "event-others", month: 0, day: 14 },
+  { name: "Pongal", colorClass: "event-others", month: 0, day: 15 },
+  { name: "Vasant Panchami", colorClass: "event-festival", month: 1, day: 2 },
+  { name: "Maha Shivaratri", colorClass: "event-festival", month: 1, day: 26 },
+  { name: "Holika Dahan", colorClass: "event-holi", month: 2, day: 13 },
+  { name: "Holi", colorClass: "event-holi", month: 2, day: 14 },
+  { name: "Ram Navami", colorClass: "event-festival", month: 3, day: 6 },
+  { name: "Hanuman Jayanti", colorClass: "event-festival", month: 3, day: 12 },
+  { name: "Akshaya Tritiya", colorClass: "event-festival", month: 3, day: 30 },
+  { name: "Baisakhi", colorClass: "event-others", month: 3, day: 14 },
+  { name: "Raksha Bandhan", colorClass: "event-raksha", month: 7, day: 9 },
+  { name: "Janmashtami", colorClass: "event-festival", month: 7, day: 16 },
+  { name: "Onam", colorClass: "event-others", month: 8, day: 5 },
+  { name: "Navratri (Start)", colorClass: "event-durga", month: 8, day: 30 },
+  { name: "Dussehra", colorClass: "event-festival", month: 9, day: 9 },
+  { name: "Diwali", colorClass: "event-diwali", month: 9, day: 20 },
+  { name: "Bhai Dooj", colorClass: "event-festival", month: 9, day: 22 },
+  { name: "Kartik Purnima", colorClass: "event-festival", month: 10, day: 5 },
+  { name: "Poila Boishakh", colorClass: "event-festival",month: 3, day: 15 },
+  { name: "Dol Purnima", colorClass: "event-festival",month: 2, day: 14 },
+  { name: "Rath Yatra", colorClass: "event-festival",month: 5, day: 26 },
+  { name: "Ganesh Chaturthi", colorClass: "event-festival",month: 7, day: 26 },
+  { name: "Kali Puja", colorClass: "event-festival",month: 9, day: 19 },
+  { name: "Durga Puja Start", colorClass: "event-festival",month: 8, day: 30 },
+  { name: "Durga Puja End",colorClass: "event-festival", month: 9, day: 8 },
+  { name: "Lakshmi Puja", colorClass: "event-festival",month: 9, day: 20 },
+  { name: "Saraswati Puja",colorClass: "event-festival", month: 1, day: 2 },
+  { name: "Rabindranath Tagore Jayanti", month: 4, day: 8 },
+  { name: "Republic Day", colorClass: "event-festival",month: 0, day: 26 },
+  { name: "Good Friday",colorClass: "event-festival",month: 3, day: 18 },
+  { name: "Labour Day", colorClass: "event-festival",month: 4, day: 1 },
+  { name: "Eid-ul-Fitr",colorClass: "event-festival", month: 3, day: 9 },
+  { name: "Eid-ul-Adha",colorClass: "event-festival", month: 5, day: 28 },
+  { name: "Independence Day",colorClass: "event-festival", month: 7, day: 15 },
+  { name: "Gandhi Jayanti", colorClass: "event-festival",month: 9, day: 2 },
+  { name: "Diwali",colorClass: "event-festival", month: 9, day: 20 },
+  { name: "Christmas", colorClass: "event-festival",month: 11, day: 25 }
+];
 
-  function render(){
-    daysGrid.innerHTML = '';
-    const year = view.getFullYear();
-    const month = view.getMonth();
 
-    // set label
-    monthLabel.textContent = view.toLocaleString(undefined, { month: 'long', year: 'numeric' });
 
-    // first day of month
-    const firstOfMonth = new Date(year,month,1);
-    const startDay = firstOfMonth.getDay(); // 0..6 (Sun..Sat)
 
-    // days in month
+  function getEventsMap(year, month) {
+  const map = {};
+  events.forEach(e => {
+    // Fix this line: e.month === month + 1  --> should be e.month === month
+    if(e.month === month) {
+      const d = new Date(year, month, e.day);
+      const key = d.toDateString();
+      if(!map[key]) map[key] = [];
+      map[key].push({name: e.name, colorClass: e.colorClass});
+    }
+  });
+  return map;
+}
+
+  let currentMonthGrid = null;
+  let animating = false;
+
+  function createMonthGrid(year, month) {
+    const grid = document.createElement("div");
+
+    const eventsMap = getEventsMap(year, month);
+
+    const firstDay = new Date(year, month, 1);
+    const startDay = firstDay.getDay();
+
     const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
 
-    // previous month days (to show inactive)
-    const prevMonthDays = new Date(year, month, 0).getDate();
+    grid.setAttribute("aria-label", `Calendar for ${firstDay.toLocaleString(undefined, { month: "long", year: "numeric" })}`);
+    grid.setAttribute("role", "grid");
+    grid.setAttribute("tabindex", "0");
 
-    // Build 6 rows x 7 = 42 cells (always enough)
-    for (let i=0;i<42;i++){
-      const cell = document.createElement('div');
-      cell.className = 'day';
+    for(let i = 0; i < 42; i++) {
+      const dayCell = document.createElement("div");
+      dayCell.classList.add("day");
+      let dayNum;
       let cellDate;
-      // Determine the day number and which month it belongs to
-      const dayIndex = i - startDay + 1;
-      if (i < startDay){
-        // previous month
-        const d = prevMonthDays - (startDay - 1 - i);
-        cell.classList.add('inactive');
-        cellDate = new Date(year, month -1, d);
-        cell.innerHTML = '<div class="num">'+ d +'</div>';
-      } else if (dayIndex > daysInMonth){
-        // next month
-        const d = dayIndex - daysInMonth;
-        cell.classList.add('inactive');
-        cellDate = new Date(year, month +1, d);
-        cell.innerHTML = '<div class="num">'+ d +'</div>';
+
+      if(i < startDay) {
+        // Previous month day
+        dayNum = daysInPrevMonth - (startDay - 1 - i);
+        cellDate = new Date(year, month - 1, dayNum);
+        dayCell.classList.add("inactive");
+      } else if(i >= startDay + daysInMonth) {
+        // Next month day
+        dayNum = i - (startDay + daysInMonth) + 1;
+        cellDate = new Date(year, month + 1, dayNum);
+        dayCell.classList.add("inactive");
       } else {
-        // current month
-        const d = dayIndex;
-        cellDate = new Date(year, month, d);
-        const num = document.createElement('div');
-        num.className = 'num';
-        num.textContent = d;
-        cell.appendChild(num);
+        // Current month day
+        dayNum = i - startDay + 1;
+        cellDate = new Date(year, month, dayNum);
       }
+
+      const numDiv = document.createElement("div");
+      numDiv.className = "num";
+      numDiv.textContent = dayNum;
+      dayCell.appendChild(numDiv);
 
       // Mark today
       const today = new Date();
       today.setHours(0,0,0,0);
-      if (cellDate.getTime() === today.getTime()){
-        cell.classList.add('today');
+      if(cellDate.getTime() === today.getTime()) {
+        dayCell.classList.add("today");
       }
 
-      // Add demo event dot if exists
+      // Add event classes
       const key = cellDate.toDateString();
-      if (events[key]) cell.classList.add('event');
+      if(eventsMap[key]) {
+        eventsMap[key].forEach(ev => {
+          dayCell.classList.add(ev.colorClass);
+        });
+      }
 
-      // click handler example
-      cell.addEventListener('click', ()=> {
-        const label = cellDate.toDateString();
-        const isEvent = !!events[key];
-        alert(label + (isEvent ? ' — You have an event' : ' — No events'));
+      // Click event to show events
+      dayCell.addEventListener("click", () => {
+        let msg = `${cellDate.toDateString()}\n`;
+        if(eventsMap[key] && eventsMap[key].length) {
+          msg += "Events:\n" + eventsMap[key].map(ev => `• ${ev.name}`).join("\n");
+        } else {
+          msg += "No events";
+        }
+        alert(msg);
       });
 
-      daysGrid.appendChild(cell);
+      grid.appendChild(dayCell);
     }
+
+    return grid;
   }
 
-  // Swipe gesture detection (horizontal)
-  let startX = 0;
-  let endX = 0;
-  const threshold = 30; // minimum px to consider a swipe
+  function slideMonth(newDate, direction) {
+    if(animating) return;
+    animating = true;
 
-  blackbox.addEventListener('touchstart', e => {
-    startX = e.touches[0].clientX;
-  });
+    const newGrid = createMonthGrid(newDate.getFullYear(), newDate.getMonth());
 
-  blackbox.addEventListener('touchend', e => {
-    endX = e.changedTouches[0].clientX;
-    const diff = endX - startX;
+    // Position new grid offscreen
+    if(direction === "left") {
+      newGrid.classList.add("slide-in-left");
+    } else {
+      newGrid.classList.add("slide-in-right");
+    }
+    daysGrid.appendChild(newGrid);
 
-    if (Math.abs(diff) > threshold) {
-      if (diff < 0) {
-        // Swipe left → Next month
-        view = new Date(view.getFullYear(), view.getMonth() + 1, 1);
-        render();
+    if(currentMonthGrid) {
+      if(direction === "left") {
+        currentMonthGrid.classList.add("slide-out-right");
       } else {
-        // Swipe right → Previous month
-        view = new Date(view.getFullYear(), view.getMonth() - 1, 1);
-        render();
+        currentMonthGrid.classList.add("slide-out-left");
       }
     }
-  });
+
+    // Animation end handler
+    newGrid.addEventListener("animationend", () => {
+      if(currentMonthGrid) {
+        daysGrid.removeChild(currentMonthGrid);
+      }
+      currentMonthGrid = newGrid;
+      monthLabel.textContent = newDate.toLocaleString(undefined, { month: "long", year: "numeric" });
+      animating = false;
+    }, { once: true });
+
+    viewDate = newDate;
+  }
 
   // Initial render
-  render();
+  currentMonthGrid = createMonthGrid(viewDate.getFullYear(), viewDate.getMonth());
+  daysGrid.appendChild(currentMonthGrid);
+  monthLabel.textContent = viewDate.toLocaleString(undefined, { month: "long", year: "numeric" });
+
+  // Swipe support
+  let startX = null;
+  let startTime = null;
+
+  daysGrid.addEventListener("touchstart", (e) => {
+    if(animating) return;
+    startX = e.touches[0].clientX;
+    startTime = Date.now();
+  });
+
+  daysGrid.addEventListener("touchend", (e) => {
+    if(startX === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const diffX = endX - startX;
+    const elapsed = Date.now() - startTime;
+
+    if(Math.abs(diffX) > 40 && elapsed < 500) {
+      if(diffX > 0) {
+        // Swipe right - previous month
+        const prevMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
+        slideMonth(prevMonth, "left");
+      } else {
+        // Swipe left - next month
+        const nextMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1);
+        slideMonth(nextMonth, "right");
+      }
+    }
+
+    startX = null;
+    startTime = null;
+  });
 })();
 </script>
 </body>
