@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Black Box Calendar with Swipe Navigation</title>
+<title>Black Box Calendar with Horizontal Swipe Navigation</title>
 <style>
   :root{
     --box-bg:#0b0b0b;
@@ -29,7 +29,7 @@
     width: 340px;
     padding: 18px;
     border: 1px solid rgba(255,255,255,0.03);
-    touch-action: pan-y; /* allow vertical pan for swipe */
+    touch-action: pan-y; /* allow vertical pan (to avoid conflicts) */
     user-select: none; /* avoid text selection while swiping */
   }
 
@@ -45,7 +45,6 @@
     font-weight:600;
     letter-spacing:0.2px;
   }
-  /* controls removed */
 
   .weekday-row {
     display:grid;
@@ -207,26 +206,26 @@
     }
   }
 
-  // Swipe gesture detection
-  let startY = 0;
-  let endY = 0;
+  // Swipe gesture detection (horizontal)
+  let startX = 0;
+  let endX = 0;
   const threshold = 30; // minimum px to consider a swipe
 
   blackbox.addEventListener('touchstart', e => {
-    startY = e.touches[0].clientY;
+    startX = e.touches[0].clientX;
   });
 
   blackbox.addEventListener('touchend', e => {
-    endY = e.changedTouches[0].clientY;
-    const diff = endY - startY;
+    endX = e.changedTouches[0].clientX;
+    const diff = endX - startX;
 
     if (Math.abs(diff) > threshold) {
       if (diff < 0) {
-        // Swipe up → Next month
+        // Swipe left → Next month
         view = new Date(view.getFullYear(), view.getMonth() + 1, 1);
         render();
       } else {
-        // Swipe down → Previous month
+        // Swipe right → Previous month
         view = new Date(view.getFullYear(), view.getMonth() - 1, 1);
         render();
       }
